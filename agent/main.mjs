@@ -19,7 +19,7 @@ const GEMINI_LIVE_VOICE = process.env.GEMINI_LIVE_VOICE ?? "Puck";
 export default defineAgent({
   entry: async (ctx) => {
     const session = new voice.AgentSession({
-      llm: new google.realtime.RealtimeModel({
+      llm: new google.beta.realtime.RealtimeModel({
         model: GEMINI_LIVE_MODEL,
         voice: GEMINI_LIVE_VOICE,
       }),

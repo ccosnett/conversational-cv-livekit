@@ -235,12 +235,12 @@ function CallUI() {
                 APIs, SDK tooling, analytics, and agentic systems.
               </p>
               <p>
-                Previously: customer-facing software engineer and Customer
-                Success Manager at Wolfram Research.
+                Previously: Customer-facing Software Engineer and Customer
+                Success Manager at Wolfram Research. I did the work of a Forward Deployed Engineer.
               </p>
               <p>
-                Background: first-class honours in Applied Mathematics and
-                Applied Physics from University of Galway.
+                Background: first-class honours in Mathematics and
+                Physics from University of Galway.
               </p>
             </div>
 
@@ -288,8 +288,8 @@ function CallUI() {
           <div className="mt-6 flex min-h-72 flex-col gap-3 rounded-[1.5rem] border border-stone-200 bg-stone-50/70 p-4">
             {messages.length === 0 ? (
               <div className="flex min-h-60 items-center justify-center rounded-[1.25rem] border border-dashed border-stone-300 bg-white/70 p-6 text-center text-sm leading-7 text-stone-500">
-                Start a call and ask about Conor&apos;s background, Compass,
-                Wolfram, technical strengths, or the roles he wants next.
+                Start a call and ask about Conor&apos;s background, Compass Labs,
+                Wolfram Research, technical strengths, or the roles he wants next.
               </div>
             ) : (
               messages.map((msg) => {
