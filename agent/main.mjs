@@ -13,7 +13,9 @@ dotenv.config({ path: ".env.local" });
 
 const AGENT_NAME =
   process.env.LIVEKIT_AGENT_NAME ?? "conversational-cv-livekit";
-const GEMINI_LIVE_MODEL = process.env.GEMINI_LIVE_MODEL ?? "gemini-2.5-flash";
+const GEMINI_LIVE_MODEL =
+  process.env.GEMINI_LIVE_MODEL ??
+  "gemini-2.5-flash-native-audio-preview-12-2025";
 const GEMINI_LIVE_VOICE = process.env.GEMINI_LIVE_VOICE ?? "Puck";
 
 export default defineAgent({
