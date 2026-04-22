@@ -40,6 +40,15 @@ function PhoneIcon({ className = "h-5 w-5" }: { className?: string }) {
 const AGENT_NAME =
   process.env.NEXT_PUBLIC_LIVEKIT_AGENT_NAME ||
   "conversational-cv-livekit";
+const REAL_CONOR_PHONE_NUMBER =
+  process.env.NEXT_PUBLIC_CONOR_PHONE_NUMBER?.trim() || "";
+const REAL_CONOR_PHONE_LABEL =
+  process.env.NEXT_PUBLIC_CONOR_PHONE_LABEL?.trim() || "Call real Conor";
+
+function toTelHref(phoneNumber: string) {
+  const normalized = phoneNumber.replace(/[^\d+]/g, "");
+  return normalized ? `tel:${normalized}` : "";
+}
 
 function CallUI() {
   const [error, setError] = useState<string | null>(null);
@@ -56,18 +65,29 @@ function CallUI() {
   const isConnected = session.isConnected;
   const isConnecting = session.connectionState === "connecting";
 
+  const ensureAudioReady = useCallback(async () => {
+    if (canPlayAudio) return;
+
+    try {
+      await startAudio();
+    } catch {
+      // Keep the explicit enable-audio button as fallback.
+    }
+  }, [canPlayAudio, startAudio]);
+
   const handleClick = useCallback(async () => {
     setError(null);
     try {
       if (isConnected) {
         await session.end();
       } else {
+        await ensureAudioReady();
         await session.start();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     }
-  }, [isConnected, session]);
+  }, [ensureAudioReady, isConnected, session]);
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -76,6 +96,7 @@ function CallUI() {
 
       try {
         setError(null);
+        await ensureAudioReady();
         if (!isConnected) {
           await session.start();
         }
@@ -85,7 +106,7 @@ function CallUI() {
         setError(err instanceof Error ? err.message : "Message send failed");
       }
     },
-    [isConnected, send, session],
+    [ensureAudioReady, isConnected, send, session],
   );
 
   const handleSubmit = useCallback(
@@ -120,6 +141,7 @@ function CallUI() {
     : isConnecting
       ? "Connecting..."
       : "Start conversation";
+  const realConorHref = toTelHref(REAL_CONOR_PHONE_NUMBER);
 
   return (
     <main className="min-h-screen px-6 py-12 text-stone-900">
@@ -156,6 +178,17 @@ function CallUI() {
                 {buttonLabel}
               </button>
 
+              {realConorHref ? (
+                <a
+                  href={realConorHref}
+                  className="inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-100"
+                  aria-label={`Call Conor at ${REAL_CONOR_PHONE_NUMBER}`}
+                >
+                  <PhoneIcon className="h-4 w-4" />
+                  {REAL_CONOR_PHONE_LABEL}
+                </a>
+              ) : null}
+
               {!canPlayAudio ? (
                 <button
                   type="button"
@@ -170,6 +203,14 @@ function CallUI() {
                 {statusText}
               </div>
             </div>
+
+            {!canPlayAudio && isConnected ? (
+              <p className="mt-4 text-sm text-amber-700">
+                Audio playback still needs a browser gesture. Click{" "}
+                <span className="font-semibold">Enable audio</span> if you do
+                not hear the agent.
+              </p>
+            ) : null}
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-stone-300 bg-stone-50/80 p-4">
@@ -187,10 +228,10 @@ function CallUI() {
               </div>
               <div className="rounded-2xl border border-stone-300 bg-stone-50/80 p-4">
                 <p className="text-sm font-semibold text-stone-900">
-                  LiveKit + Gemini
+                  LiveKit Voice Stack
                 </p>
                 <p className="mt-1 text-sm text-stone-600">
-                  Voice runtime on LiveKit, responses on Gemini Live.
+                  Speech and replies run through LiveKit Inference.
                 </p>
               </div>
             </div>

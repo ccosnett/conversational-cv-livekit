@@ -8,7 +8,7 @@ projects, technical strengths, and role preferences through conversation.
 This repo now has two pieces:
 
 - a small Next.js web app for the call UI and transcript
-- a LiveKit voice agent powered by Gemini Live
+- a LiveKit voice agent powered by LiveKit Inference
 
 The voice agent is grounded from local content files in `content/` and uses
 tool calls to search that corpus during the conversation.
@@ -37,7 +37,8 @@ instructions and search tools.
    - `LIVEKIT_API_KEY`
    - `LIVEKIT_API_SECRET`
    - `LIVEKIT_URL`
-   - `GOOGLE_API_KEY`
+   - `NEXT_PUBLIC_CONOR_PHONE_NUMBER` (optional real-world call CTA)
+   - `NEXT_PUBLIC_CONOR_PHONE_LABEL` (optional button copy)
 
 3. Start the LiveKit agent worker:
 
@@ -76,3 +77,5 @@ Deploy the LiveKit agent separately with `lk agent create`.
 ## Product intention
 
 The original project brief lives in [intention.md](./intention.md).
+
+For a deeper architecture walkthrough, see [spec.md](./spec.md).
