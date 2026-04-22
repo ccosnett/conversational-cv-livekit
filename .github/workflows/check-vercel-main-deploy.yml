@@ -1,0 +1,140 @@
+name: Check Vercel Main Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit SHA to check. Defaults to the workflow SHA.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify-vercel-deployment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+      POLL_INTERVAL_SECONDS: "15"
+      MAX_WAIT_SECONDS: "600"
+    steps:
+      - name: Validate required configuration
+        run: |
+          missing=0
+
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Missing GitHub secret VERCEL_TOKEN"
+            missing=1
+          fi
+
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Missing GitHub variable VERCEL_PROJECT_ID"
+            missing=1
+          fi
+
+          if [ -z "$VERCEL_TEAM_ID" ]; then
+            echo "::error::Missing GitHub variable VERCEL_TEAM_ID"
+            missing=1
+          fi
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Poll Vercel for production deployment
+        run: |
+          set -euo pipefail
+
+          target_sha="${{ github.sha }}"
+          manual_sha="${{ github.event.inputs.sha || '' }}"
+          if [ -n "$manual_sha" ]; then
+            target_sha="$manual_sha"
+          fi
+
+          deadline=$(( $(date +%s) + MAX_WAIT_SECONDS ))
+          api_url="https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&target=production&sha=${target_sha}&teamId=${VERCEL_TEAM_ID}&limit=20"
+
+          write_summary() {
+            {
+              echo "## Vercel deployment status"
+              echo ""
+              echo "- Commit: \`${target_sha}\`"
+              echo "- State: \`${state}\`"
+              echo "- Ready state: \`${ready_state}\`"
+              if [ -n "$ready_substate" ]; then
+                echo "- Ready substate: \`${ready_substate}\`"
+              fi
+              if [ -n "$deployment_url" ]; then
+                echo "- Deployment URL: https://${deployment_url}"
+              fi
+              if [ -n "$inspector_url" ]; then
+                echo "- Inspector URL: ${inspector_url}"
+              fi
+              if [ -n "$error_message" ]; then
+                echo "- Error: ${error_message}"
+              fi
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          echo "Checking Vercel production deployments for commit ${target_sha}"
+          echo "API query: projectId=${VERCEL_PROJECT_ID}, teamId=${VERCEL_TEAM_ID}, target=production"
+
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            response="$(curl -fsSL \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "$api_url")"
+
+            count="$(printf '%s' "$response" | jq '.deployments | length')"
+
+            if [ "$count" -eq 0 ]; then
+              echo "No production deployment yet for ${target_sha}; retrying in ${POLL_INTERVAL_SECONDS}s"
+              sleep "$POLL_INTERVAL_SECONDS"
+              continue
+            fi
+
+            state="$(printf '%s' "$response" | jq -r '.deployments[0].state // "UNKNOWN"')"
+            ready_state="$(printf '%s' "$response" | jq -r '.deployments[0].readyState // "UNKNOWN"')"
+            ready_substate="$(printf '%s' "$response" | jq -r '.deployments[0].readySubstate // ""')"
+            deployment_url="$(printf '%s' "$response" | jq -r '.deployments[0].url // ""')"
+            inspector_url="$(printf '%s' "$response" | jq -r '.deployments[0].inspectorUrl // ""')"
+            error_message="$(printf '%s' "$response" | jq -r '.deployments[0].errorMessage // ""')"
+
+            case "$state" in
+              READY)
+                write_summary
+                echo "Deployment found and ready: https://${deployment_url}"
+                exit 0
+                ;;
+              ERROR|CANCELED)
+                write_summary
+                echo "::error::Vercel deployment ended in state ${state}. ${error_message}"
+                exit 1
+                ;;
+              BUILDING|INITIALIZING|QUEUED)
+                echo "Deployment is ${state}; retrying in ${POLL_INTERVAL_SECONDS}s"
+                sleep "$POLL_INTERVAL_SECONDS"
+                ;;
+              *)
+                echo "Deployment is in unexpected state ${state}; retrying in ${POLL_INTERVAL_SECONDS}s"
+                sleep "$POLL_INTERVAL_SECONDS"
+                ;;
+            esac
+          done
+
+          state="TIMEOUT"
+          ready_state="TIMEOUT"
+          ready_substate=""
+          deployment_url=""
+          inspector_url=""
+          error_message="No production deployment reached READY before timeout."
+          write_summary
+          echo "::error::Timed out waiting for a production Vercel deployment for ${target_sha}"
+          exit 1
