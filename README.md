@@ -8,7 +8,7 @@ projects, technical strengths, and role preferences through conversation.
 This repo now has two pieces:
 
 - a small Next.js web app for the call UI and transcript
-- a LiveKit voice agent powered by LiveKit Inference
+- a LiveKit voice agent powered by LiveKit.ai
 
 The voice agent is grounded from local content files in `content/` and uses
 tool calls to search that corpus during the conversation.
