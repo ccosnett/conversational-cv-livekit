@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_GITHUB_ACTIONS_CONVERSATIONAL_CV_LIVEKIT }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
       POLL_INTERVAL_SECONDS: "15"
@@ -30,7 +30,7 @@ jobs:
           missing=0
 
           if [ -z "$VERCEL_TOKEN" ]; then
-            echo "::error::Missing GitHub secret VERCEL_GITHUB_ACTIONS_CONVERSATIONAL_CV_LIVEKIT"
+            echo "::error::Missing GitHub secret VERCEL_TOKEN"
             missing=1
           fi
 
